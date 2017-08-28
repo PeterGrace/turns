@@ -26,27 +26,34 @@ weather_map = [
     'Bounteous Rainfall'
 ]
 
-SERF_EATS = 5
-SERF_PER_LAND = 500
+SERF_EATS = 2
+SERF_PER_LAND = 6
 GOLD_PER_FOOD = 10
+GRANARY_STORAGE = 10000
+FOOD_MULTIPLIER = 10
+TAX_RATE=4
 
 class Game:
     '''The game logic'''
 
     def __init__(self):
-        self.lands = 1
+        self.lands = 100
         self.food = 100
         self.serfs = 2
         self.gold = 100
+        self.granaries = 1
         random.seed(time.time())
         pass
 
     def sell_food(self):
-        if self.food > 100:
-            selling = self.food - 100
-            self.gold += (selling*GOLD_PER_FOOD)
+        if self.food > 5000:
+            selling = self.food - 5000
+            moneyback = (selling*GOLD_PER_FOOD)
+            self.gold += moneyback
             self.food -= selling
-            logging.info("You sold {} food for {} gold.  {} food remains.".format(selling, self.gold, self.food))
+            logging.info("You sold {} food for {} gold.  {} food remains.".format(selling, moneyback, self.food))
+        else:
+            logging.info("You can only sell if you have more than 5000 food.")
 
 
     def run_turn(self):
@@ -54,22 +61,32 @@ class Game:
         self.check_consumption()
         self.check_population()
         self.check_spoilage()
+        self.collect_taxes()
         logging.info("You have {} lands, {} serfs, {} gold, and {} food.".format(self.lands, self.serfs, self.gold, self.food))
     
+    def collect_taxes(self):
+        taxes = self.serfs*TAX_RATE
+        self.gold += taxes
+        logging.info("You have collected {} gold from your subjects.".format(taxes))
+
     def check_consumption(self):
-        for serf in range(1,self.serfs):
-            self.food -= SERF_EATS 
+        consumption = (self.serfs*SERF_EATS)
+        logging.info("Your serfs have eaten {} food.".format(consumption))
+        self.food -= consumption
+        if self.food < 0:
+            self.food = 0
+            logging.info("Widespread famine has culled your population.")
+            self.serfs = int(self.serfs * .15)
+            
 
     def check_spoilage(self):
-        if self.food >= (self.serfs*(SERF_EATS*5)):
-            spoilage = int(self.food/2)
-            self.food -= spoilage
-            logging.info("Unfortunately, {} food has spoiled.".format(spoilage))
+        granary_max = self.granaries*GRANARY_STORAGE
+        if self.food >= granary_max:
+            loss = self.food - granary_max
+            self.food = granary_max
+            logging.info("Unfortunately, {} food has spoiled.  Build more granaries!".format(loss))
 
     def check_population(self):
-        if self.food <= 0:
-            logging.info("A serf has died due to famine.")
-            self.serfs -= 1
         
         if self.serfs == 0:
             logging.info("Game over.")
@@ -77,20 +94,27 @@ class Game:
 
         max_serfs = SERF_PER_LAND * self.lands
 
+
         if ((self.serfs >= 2) and (self.serfs <= max_serfs)):
             if self.food >= 5:
                 logging.info("Your harvests have caused our serfs to have children")
                 self.serfs += int((self.serfs/2))
             else:
                 logging.info("You barely had enough food to feed our population, sire.")
-        else:
+        elif (self.serfs == 1):
+            logging.info("Your kingdom consists of only you.  Without a miracle, you are doomed.")
+            roll = self.d20()
+            if roll == 20:
+                logging.info("Unbelievably, a family has come to your kingdom!")
+                self.serfs += 10
+        else:    
             logging.info("Your land is overcrowded, sire.")
 
 
 
     def check_growth(self):
         weather = self.check_weather()
-        plusfood = int((((weather['value']+100)/100)*self.food)+1)
+        plusfood = abs(int(((((weather['value']+100)/100)*self.lands)*FOOD_MULTIPLIER)+1))
         self.food += plusfood
         logging.info("This turn, the weather was {}.  You gained {} food.".format(weather['word'], plusfood))
 

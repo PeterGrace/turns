@@ -14,9 +14,9 @@ def main(debug):
     else:
         logging.basicConfig(level=logging.INFO)
     p = Player("Pete")
-    p.set_turns(10)
+    p.set_turns(100)
     while p.turns > 0:
-        choice = input("(D)iscover, (M)arket")
+        choice = input("[L:{land}][S:{serfs}][F:{food}][T:{turns}] (D)iscover, (M)arket: ".format(land=p.g.lands,serfs=p.g.serfs, food=p.g.food, turns=p.turns))
         if choice == "D":
             p.g.lands+=10
         elif choice == "M":
